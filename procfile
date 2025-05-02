@@ -1,1 +1,4 @@
-worker: python indra.py
+web: python indra.py
+git add Procfile
+git commit -m "Fix Procfile to use web process"
+git push
