@@ -1,0 +1,6 @@
+numpy
+schedule
+psycopg2-binary
+requests
+beautifulsoup4
+selenium
