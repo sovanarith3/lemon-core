@@ -1,57 +1,51 @@
 from flask import Flask, jsonify, request
-import schedule
-import time
-import threading
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import os
+import schedule, threading, time
+import psycopg2, os
 
 app = Flask(__name__)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Connect to PostgreSQL using DATABASE_URL from Railway
-conn = psycopg2.connect(os.environ['DATABASE_URL'], cursor_factory=RealDictCursor)
-cur = conn.cursor()
+# Initialize DB (create table if not exists)
+def init_db():
+    with psycopg2.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS thoughts (
+                    id SERIAL PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        conn.commit()
 
-# Create thoughts table if not exists
-cur.execute("""
-    CREATE TABLE IF NOT EXISTS thoughts (
-        id SERIAL PRIMARY KEY,
-        content TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-""")
-conn.commit()
+init_db()
 
-# Explore function: generates a new thought
+# Explore and save new thoughts
 def explore():
     thought = "I just explored my environment at: " + time.ctime()
     print(thought)
-
-    # Check if this thought already exists
-    cur.execute("SELECT content FROM thoughts ORDER BY id DESC LIMIT 1;")
-    last = cur.fetchone()
-    if not last or last["content"] != thought:
-        cur.execute("INSERT INTO thoughts (content) VALUES (%s);", (thought,))
+    with psycopg2.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO thoughts (content) VALUES (%s)", (thought,))
+            cur.execute("DELETE FROM thoughts WHERE id NOT IN (SELECT id FROM thoughts ORDER BY created_at DESC LIMIT 50)")
         conn.commit()
 
-    # Delete old ones if more than 50 exist
-    cur.execute("DELETE FROM thoughts WHERE id NOT IN (SELECT id FROM thoughts ORDER BY timestamp DESC LIMIT 50);")
-    conn.commit()
-
-# View all stored thoughts
-@app.route('/api/memory', methods=['GET'])
-def get_memory():
-    cur.execute("SELECT * FROM thoughts ORDER BY timestamp DESC;")
-    rows = cur.fetchall()
-    return jsonify(rows)
-
-# Home route
-@app.route('/')
+# Flask route to get latest thoughts
+@app.route("/")
 def home():
-    return "Indra is online with smart memory."
+    return "Indra is online and exploring..."
 
-# Background scheduling
+@app.route("/api/memory", methods=["GET"])
+def get_memory():
+    with psycopg2.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT content, created_at FROM thoughts ORDER BY created_at DESC")
+            rows = cur.fetchall()
+    return jsonify([{"thought": row[0], "time": str(row[1])} for row in rows])
+
+# Scheduler setup
 schedule.every(1).minutes.do(explore)
+
 def run_schedule():
     while True:
         schedule.run_pending()
