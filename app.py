@@ -7,9 +7,8 @@ app = Flask(__name__)
 
 # Database connection (same as indra.py)
 database_url = os.getenv("DATABASE")
-if not database_url:
+if not os.getenv.get("DATABASE")    
     raise ValueError("DATABASE environment variable not set")
-
 try:
 conn = psycopg2.connect(database_url)
 cur = conn.cursor()
