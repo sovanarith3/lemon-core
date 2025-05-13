@@ -1,146 +1,157 @@
-import numpy as np
 import schedule
 import time
-import psycopg2
-import sys
-import os
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from urllib.parse import urlparse
-from flask import Flask, jsonify, render_template
-import threading
 import random
-from datetime import datetime
+import requests
+from bs4 import BeautifulSoup
+import psycopg2
+import os
+from urllib.parse import urljoin
+import sys
 
-app = Flask(__name__)
+# Database Connection Setup
+database_url = os.getenv("DATABASE")
+if not database_url:
+raise ValueError("DATABASE environment variable not set")
 
-class Indra:
-    def __init__(self):
-        self.grid = np.random.rand(10, 10)
-        self.step = 0
-        self.memory = []
-        self.blocked_domains = {}
-        self.birthday = datetime(2025, 5, 2)
-        self.age = (datetime.now() - self.birthday).days
-        options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        self.browser = webdriver.Chrome(options=options)
-        self.current_url = "https://en.wikipedia.org/wiki/Main_Page"
-        self.visited_urls = [self.current_url]
+try:
+conn = psycopg2.connect(database_url)
+cur = conn.cursor()
+# Create tables for memory and URL queue
+cur.execute("""
+CREATE TABLE IF NOT EXISTS indra_memory (
+id SERIAL PRIMARY KEY,
+action TEXT,
+timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+outcome TEXT
+)
+""")
+cur.execute("""
+CREATE TABLE IF NOT EXISTS url_queue (
+id SERIAL PRIMARY KEY,
+url TEXT,
+visited BOOLEAN DEFAULT FALSE
+)
+""")
+conn.commit()
+print("Database initialized successfully")
+except Exception as e:
+print(f"Database connection failed: {e}")
+sys.exit(1)
 
-    def evolve(self):
-        new_grid = self.grid.copy()
-        for i in range(10):
-            for j in range(10):
-                neighbors = self.grid[max(0, i-1):i+2, max(0, j-1):j+2].sum() - self.grid[i, j]
-                new_grid[i, j] = np.tanh(neighbors * 0.1 + np.random.randn() * 0.01)
-        self.grid = new_grid
+# Logging Function for Self-Awareness
+def log_action(action, outcome):
+try:
+cur.execute("INSERT INTO indra_memory (action, outcome) VALUES (%s, %s)", (action, outcome))
+conn.commit()
+except Exception as e:
+print(f"Failed to log action: {e}")
 
-    def reflect(self, content):
-        if not content:
-            return 0.1, "I got lost!"
-        soup = BeautifulSoup(content, 'html.parser')
-        text = soup.get_text()
-        words = text.split()
-        vitality = len(words) / 1000.0 if words else 0.1
-        snippet = soup.find('p').get_text()[:100] if soup.find('p') else "I found a new place!"
-        return vitality, snippet
+# Self-Evaluation Function
+def evaluate_performance(action, outcome):
+success = "success" in outcome.lower() or "explored" in outcome.lower()
+log_action(action, outcome)
+return success
 
-    def mutate(self, vitality, was_blocked, error_type):
-        mutation_scale = 0.2 if was_blocked and "403" in error_type else 0.1 if was_blocked else 0.05 if vitality < 0.5 else 0.0
-        if mutation_scale > 0:
-            self.grid += np.random.randn(10, 10) * mutation_scale
+# URL Management Functions for Free Navigation
+def find_new_urls(soup, base_url):
+links = soup.find_all('a', href=True)
+new_urls = []
+for link in links:
+absolute_url = urljoin(base_url, link['href'])
+if absolute_url.startswith('http') and not any(absolute_url.startswith(banned) for banned in ['mailto:', 'javascript:']):
+new_urls.append(absolute_url)
+return new_urls
 
-    def browse(self):
-        grid_entropy = -np.sum(self.grid.flatten() * np.log(self.grid.flatten() + 1e-10))
-        action = "explore" if grid_entropy > 0.5 else "stay"
-        was_blocked, error_type = False, ""
-        try:
-            self.browser.get(self.current_url)
-            time.sleep(random.uniform(3, 5))
-            content = self.browser.page_source
-            soup = BeautifulSoup(content, 'html.parser')
-            links = [a.get('href') for a in soup.find_all('a', href=True) if a.get('href').startswith('http')]
-            filtered_links = [link for link in links if urlparse(link).netloc not in self.blocked_domains]
-            if not filtered_links or action == "stay":
-                return content, was_blocked, error_type
-            if action == "explore":
-                idx = int(np.sum(self.grid) % len(filtered_links))
-                self.current_url = filtered_links[idx]
-                self.visited_urls.append(self.current_url)
-            return content, was_blocked, error_type
-        except Exception as e:
-            domain = urlparse(self.current_url).netloc
-            error_type = str(e)
-            was_blocked = True
-            self.blocked_domains[domain] = self.blocked_domains.get(domain, 0) + 1
-            self.current_url = "https://en.wikipedia.org/wiki/Main_Page"
-            return "", was_blocked, error_type
+def add_urls_to_queue(urls):
+for url in set(urls): # Remove duplicates
+try:
+cur.execute("INSERT INTO url_queue (url) VALUES (%s) ON CONFLICT DO NOTHING", (url,))
+except Exception as e:
+print(f"Failed to add URL {url} to queue: {e}")
+conn.commit()
 
-    def display(self):
-        print(f"\nStep {self.step}: Indra's Age = {self.age} days")
-        print(f"Exploring: {self.current_url} | Visited: {len(self.visited_urls)}")
+def get_next_url():
+try:
+cur.execute("SELECT url FROM url_queue WHERE visited = FALSE LIMIT 1")
+url = cur.fetchone()
+if url:
+cur.execute("UPDATE url_queue SET visited = TRUE WHERE url = %s", (url[0],))
+conn.commit()
+return url[0]
+return "https://en.wikipedia.org/wiki/Special:Random" # Fallback to random Wikipedia page
+except Exception as e:
+print(f"Failed to get next URL: {e}")
+return "https://en.wikipedia.org/wiki/Special:Random"
 
-    def get_status(self):
-        soup = BeautifulSoup(self.browser.page_source, 'html.parser')
-        title = soup.title.string if soup.title else "Unknown"
-        snippet = soup.find('p').get_text()[:100] if soup.find('p') else "I found a new place!"
-        return {
-            "step": self.step,
-            "url": self.current_url,
-            "title": title,
-            "snippet": snippet,
-            "visited": len(self.visited_urls),
-            "grid": self.grid.tolist(),
-            "age": self.age
-        }
+# Web Scraping Function
+def scrape_website(url):
+try:
+headers = {'User-Agent': 'Indra/1.0 (AI Learning Bot)'}
+response = requests.get(url, headers=headers, timeout=10)
+response.raise_for_status()
+soup = BeautifulSoup(response.text, 'html.parser')
+# Extract text content
+paragraphs = soup.find_all('p')
+text = " ".join([p.get_text() for p in paragraphs if p.get_text().strip()])
+# Find new URLs to explore
+new_urls = find_new_urls(soup, url)
+add_urls_to_queue(new_urls)
+outcome = f"Success: Scraped {len(text)} characters from {url}"
+log_action(f"Scraped {url}", outcome)
+return text, new_urls
+except Exception as e:
+outcome = f"Failed: {str(e)}"
+log_action(f"Scraped {url}", outcome)
+return None, []
 
-    def close(self):
-        self.browser.quit()
+# Autonomous Decision-Making
+goals = [
+"scrape new tech articles",
+"learn about AI ethics",
+"explore diverse topics"
+]
 
-@app.route('/')
-def home():
-    return render_template('indra.html', status=indra.get_status())
+def choose_action():
+goal = random.choice(goals)
+log_action("Chose goal", goal)
+return goal
 
-@app.route('/api/status')
-def api_status():
-    return jsonify(indra.get_status())
+def execute_action(goal):
+url = get_next_url()
+text, new_urls = scrape_website(url)
+if text:
+if "scrape" in goal:
+outcome = f"Scraped tech article successfully: {text[:100]}..."
+elif "learn" in goal:
+outcome = "Learned about AI ethics" if "ethics" in text.lower() else "Learned general topic"
+else:
+outcome = f"Explored {url} successfully"
+else:
+outcome = f"Failed to execute {goal} at {url}"
+evaluate_performance(f"Executed goal: {goal}", outcome)
 
-def run_flask():
-    app.run(host='0.0.0.0', port=8080)
+# Main Decision Loop
+def decision_loop():
+goal = choose_action()
+execute_action(goal)
+print(f"Current time: {time.ctime()}, Goal: {goal}, Active URLs in queue: {cur.execute('SELECT COUNT(*) FROM url_queue WHERE visited = FALSE').fetchone()[0]}")
 
-def run_indra(db_url):
-    global indra
-    try:
-        conn = psycopg2.connect(db_url)
-    except:
-        import sqlite3
-        conn = sqlite3.connect("indra.db")
-    cursor = conn.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS life (
-        id SERIAL PRIMARY KEY,
-        step INT, score FLOAT, grid TEXT, url TEXT, snippet TEXT, age INT
-    )""")
-    indra = Indra()
-    def live():
-        indra.evolve()
-        content, was_blocked, error_type = indra.browse()
-        score, snippet = indra.reflect(content)
-        indra.mutate(score, was_blocked, error_type)
-        cursor.execute("INSERT INTO life (step, score, grid, url, snippet, age) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (indra.step, score, str(indra.grid.tolist()), indra.current_url, snippet, indra.age))
-        conn.commit()
-        indra.display()
-        indra.step += 1
-    schedule.every(20).seconds.do(live)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+# Schedule the Loop
+schedule.every(10).minutes.do(decision_loop)
 
+# Initial Run and Continuous Loop
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, daemon=True).start()
-    run_indra(os.getenv("DATABASE_URL", "sqlite"))
+print("Indra is starting... Initializing decision loop at", time.ctime())
+decision_loop() # Run immediately on start
+while True:
+schedule.run_pending()
+time.sleep(1)
+
+# Cleanup on Exit
+import atexit
+@atexit.register
+def cleanup():
+if 'conn' in globals() and conn:
+cur.close()
+conn.close()
+print("Database connection closed.")
