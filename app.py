@@ -5,10 +5,11 @@ import os
 
 app = Flask(__name__)
 
-# Database connection (same as indra.py)
+# Database connection
 database_url = os.getenv("DATABASE")
-if not os.eniron.get("DATABASE"):  
-    raise ValueError("DATABASE environment variable not set")
+if not database_url:
+raise ValueError("DATABASE environment variable not set")
+
 try:
 conn = psycopg2.connect(database_url)
 cur = conn.cursor()
@@ -18,7 +19,6 @@ raise
 
 @app.route('/')
 def home():
-# Fetch recent logs from indra_memory
 cur.execute("SELECT action, outcome, timestamp FROM indra_memory ORDER BY timestamp DESC LIMIT 10")
 logs = cur.fetchall()
 return render_template('index.html', logs=logs)
@@ -27,13 +27,13 @@ return render_template('index.html', logs=logs)
 def stop_indra():
 cur.execute("INSERT INTO indra_memory (action, outcome) VALUES (%s, %s)", ("Stopped Indra", "Manual shutdown"))
 conn.commit()
-os._exit(0) # Forcefully stop the worker (use with caution)
+os._exit(0)
 return "Indra stopped"
 
 if __name__ == "__main__":
 app.run(host="0.0.0.0", port=8080)
 
-# Cleanup on exit
+# Cleanup
 import atexit
 @atexit.register
 def cleanup():
