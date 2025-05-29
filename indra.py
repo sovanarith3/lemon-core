@@ -4,19 +4,22 @@ import json
 import time
 import schedule
 import logging
+import os
 
 # Configure logging for self-awareness
-logging.basicConfig(filename='indra.log', level=logging.INFO)
+log_file = os.path.join('/tmp', 'indra.log')
+logging.basicConfig(filename=log_file, level=logging.INFO)
 
 class IndraAI:
     def __init__(self):
         self.memory = []
         self.state = "idle"
+        print("IndraAI initialized")  # Debug print
 
     def log_state(self, action):
         self.memory.append({"action": action, "timestamp": time.time()})
         logging.info(f"Action: {action}, State: {self.state}, Time: {time.time()}")
-        with open('memory.json', 'w') as f:
+        with open('/tmp/memory.json', 'w') as f:
             json.dump(self.memory, f)
 
     def scrape_web(self, url):
@@ -31,7 +34,6 @@ class IndraAI:
             return None
 
     def make_decision(self):
-        # Simple decision: scrape a site if idle
         if self.state == "idle":
             self.state = "active"
             data = self.scrape_web("https://example.com")
@@ -43,6 +45,7 @@ class IndraAI:
         return f"State: {self.state}, Memory size: {len(self.memory)}"
 
 def run_indra():
+    print("Starting Indra worker")  # Debug print
     indra = IndraAI()
     schedule.every(60).seconds.do(indra.make_decision)
     while True:
