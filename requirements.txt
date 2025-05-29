@@ -2,6 +2,6 @@ numpy
 schedule
 psycopg2-binary
 beautifulsoup4
-requests
-gunicorn
+selenium
 flask
+gunicorn
