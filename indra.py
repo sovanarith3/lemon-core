@@ -42,10 +42,12 @@ class IndraAI:
         logging.info("Making decision")
         if self.state == "idle":
             self.state = "active"
-            data = self.scrape_web("https://example.com")
+            # Temporarily disable scraping
+            # data = self.scrape_web("https://example.com")
+            self.log_state("Skipped scraping for debugging")
             self.state = "idle"
             logging.info("Decision completed")
-            return data
+            return None
         return None
 
     def get_status(self):
@@ -59,19 +61,20 @@ def run_indra():
         print("Starting Indra worker")
         logging.info("Starting Indra worker")
         indra = IndraAI()
-        try:
-            schedule.every(60).seconds.do(indra.make_decision)
-            logging.info("Scheduler started")
-        except Exception as e:
-            logging.error(f"Failed to start scheduler: {str(e)}")
-            raise
+        # Temporarily disable scheduler
+        # schedule.every(60).seconds.do(indra.make_decision)
+        # logging.info("Scheduler started")
+        # while True:
+        #     try:
+        #         schedule.run_pending()
+        #         logging.info("Scheduler tick")
+        #     except Exception as e:
+        #         logging.error(f"Error in scheduler loop: {str(e)}")
+        #     time.sleep(1)
+        logging.info("Worker running in debug mode without scheduler")
         while True:
-            try:
-                schedule.run_pending()
-                logging.info("Scheduler tick")
-            except Exception as e:
-                logging.error(f"Error in scheduler loop: {str(e)}")
-            time.sleep(1)
+            indra.make_decision()
+            time.sleep(60)
     except Exception as e:
         logging.error(f"Worker error: {str(e)}")
         raise
