@@ -6,9 +6,18 @@ import logging
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logging.debug("Starting app.py")
+
 app = Flask(__name__)
 app.config['DEBUG'] = True
-indra_instance = indra.IndraAI()  # In-memory instance
+logging.debug("Flask app initialized")
+
+try:
+    indra_instance = indra.IndraAI()
+    logging.debug("IndraAI instance created for Flask")
+except Exception as e:
+    logging.error(f"Failed to create IndraAI instance: {str(e)}")
+    raise
 
 @app.route('/')
 def index():
