@@ -1,28 +1,7 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html>
-<head>
-<title>Indra Dashboard</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-h1 { color: #333; }
-ul { list-style-type: none; padding: 0; }
-li { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
-button { padding: 10px 20px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer; }
-button:hover { background: #cc0000; }
-</style>
-</head>
 <body>
-<h1>Indra Dashboard</h1>
-<h2>Recent Actions</h2>
-<ul>
-{% for log in logs %}
-<li>{{ log[0] }} - {{ log[1] }} at {{ log[2] }}</li>
-{% endfor %}
-</ul>
-<h2>Control</h2>
-<form action="/stop_indra" method="POST">
-<button type="submit">Stop Indra</button>
-</form>
+    <h1>Indra AI Status</h1>
+    <p>{{ status }}</p>
 </body>
 </html>
