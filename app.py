@@ -44,23 +44,23 @@ def index():
 @app.route('/logs')
 def logs():
     try:
-       logging.debug("Attempting to serve indra.log")
-       return send_file('/tmp/indra.log', as_attachment=True)
-   except FileNotFoundError:
-       logging.error("Log file not found")
-       return "Log file not found", 404
+        logging.debug("Attempting to serve indra.log")
+        return send_file('/tmp/indra.log', as_attachment=True)
+    except FileNotFoundError:
+        logging.error("Log file not found")
+        return "Log file not found", 404
 
 @app.route('/memory')
 def memory():
     try:
-       logging.debug("Attempting to serve memory.json")
-       memory_data = indra_instance.get_memory()
-       with open('/tmp/memory.json', 'w') as f:
-           json.dump(memory_data, f)
-       return send_file('/tmp/memory.json', as_attachment=True)
-   except Exception as e:
-       logging.error(f"Error serving memory: {str(e)}")
-       return "Memory file not found", 404
+        logging.debug("Attempting to serve memory.json")
+        memory_data = indra_instance.get_memory()
+        with open('/tmp/memory.json', 'w') as f:
+            json.dump(memory_data, f)
+        return send_file('/tmp/memory.json', as_attachment=True)
+    except Exception as e:
+        logging.error(f"Error serving memory: {str(e)}")
+        return "Memory file not found", 404
 
 @app.route('/health')
 def health():
