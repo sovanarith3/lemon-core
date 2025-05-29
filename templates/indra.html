@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head><title>Indra</title></head>
 <body>
-  <h1>Indra is Alive</h1>
-  <p><strong>Step:</strong> {{ status.step }}</p>
-  <p><strong>URL:</strong> {{ status.url }}</p>
-  <p><strong>Title:</strong> {{ status.title }}</p>
-  <p><strong>Snippet:</strong> {{ status.snippet }}</p>
-  <p><strong>Visited:</strong> {{ status.visited }}</p>
-  <p><strong>Age:</strong> {{ status.age }} days</p>
+    <h1>Indra AI Status</h1>
+    <p>Current Status: {{ status }}</p>
+    <h2>Recent Actions</h2>
+    <ul>
+    {% for entry in memory %}
+        <li>{{ entry.action }} at {{ entry.timestamp }}</li>
+    {% endfor %}
+    </ul>
 </body>
 </html>
