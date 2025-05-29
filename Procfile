@@ -1,2 +1,2 @@
 web: gunicorn app:app
-worker: python indra.py
+worker: python -u indra.py
