@@ -6,25 +6,30 @@ import schedule
 import logging
 import os
 
-# Configure logging for self-awareness
-log_file = os.path.join('/tmp', 'indra.log')
-logging.basicConfig(filename=log_file, level=logging.INFO)
+# Configure logging to stdout
+logging.basicConfig(level=logging.INFO)
 
 class IndraAI:
     def __init__(self):
         self.memory = []
         self.state = "idle"
-        print("IndraAI initialized")  # Debug print
+        print("IndraAI initialized")
+        logging.info("IndraAI initialized")
 
     def log_state(self, action):
         self.memory.append({"action": action, "timestamp": time.time()})
         logging.info(f"Action: {action}, State: {self.state}, Time: {time.time()}")
-        with open('/tmp/memory.json', 'w') as f:
-            json.dump(self.memory, f)
+        print(f"Memory updated: {self.memory}")
+        try:
+            with open('/tmp/memory.json', 'w') as f:
+                json.dump(self.memory, f)
+        except Exception as e:
+            logging.error(f"Failed to write memory.json: {str(e)}")
 
     def scrape_web(self, url):
+        logging.info(f"Attempting to scrape {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)
             soup = BeautifulSoup(response.text, 'html.parser')
             text = soup.get_text()
             self.log_state(f"Scraped {url}")
@@ -34,23 +39,35 @@ class IndraAI:
             return None
 
     def make_decision(self):
+        logging.info("Making decision")
         if self.state == "idle":
             self.state = "active"
             data = self.scrape_web("https://example.com")
             self.state = "idle"
+            logging.info("Decision completed")
             return data
         return None
 
     def get_status(self):
         return f"State: {self.state}, Memory size: {len(self.memory)}"
 
+    def get_memory(self):
+        return self.memory
+
 def run_indra():
-    print("Starting Indra worker")  # Debug print
-    indra = IndraAI()
-    schedule.every(60).seconds.do(indra.make_decision)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    try:
+        print("Starting Indra worker")
+        logging.info("Starting Indra worker")
+        indra = IndraAI()
+        schedule.every(60).seconds.do(indra.make_decision)
+        logging.info("Scheduler started")
+        while True:
+            schedule.run_pending()
+            logging.info("Scheduler tick")
+            time.sleep(1)
+    except Exception as e:
+        logging.error(f"Worker error: {str(e)}")
+        raise
 
 if __name__ == "__main__":
     run_indra()
