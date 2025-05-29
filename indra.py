@@ -59,11 +59,18 @@ def run_indra():
         print("Starting Indra worker")
         logging.info("Starting Indra worker")
         indra = IndraAI()
-        schedule.every(60).seconds.do(indra.make_decision)
-        logging.info("Scheduler started")
+        try:
+            schedule.every(60).seconds.do(indra.make_decision)
+            logging.info("Scheduler started")
+        except Exception as e:
+            logging.error(f"Failed to start scheduler: {str(e)}")
+            raise
         while True:
-            schedule.run_pending()
-            logging.info("Scheduler tick")
+            try:
+                schedule.run_pending()
+                logging.info("Scheduler tick")
+            except Exception as e:
+                logging.error(f"Error in scheduler loop: {str(e)}")
             time.sleep(1)
     except Exception as e:
         logging.error(f"Worker error: {str(e)}")
