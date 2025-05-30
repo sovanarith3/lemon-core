@@ -5,13 +5,17 @@
     "nixpacksPlan": {
       "phases": {
         "setup": {
-          "nixPkgs": ["python312", "gunicorn"]
+          "nixPkgs": ["python3.12", "gunicorn"]
         },
         "install": {
           "cmds": ["pip install -r requirements.txt"]
         },
         "build": {
-          "cmds": ["echo 'Build phase: Listing files' && ls -R"]
+          "cmds": [
+            "mkdir -p /app/templates",
+            "cp -r templates/* /app/templates/",
+            "echo 'Build phase: Listing files' && ls -R /app"
+          ]
         }
       }
     }
