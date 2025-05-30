@@ -11,6 +11,13 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 logging.debug("Flask app initialized")
 
+# Log project directory structure
+project_root = app.root_path
+logging.debug(f"Project root: {project_root}")
+logging.debug("Directory structure:")
+for root, dirs, files in os.walk(project_root):
+    logging.debug(f"Root: {root}, Dirs: {dirs}, Files: {files}")
+
 # Log templates directory contents
 templates_dir = os.path.join(app.root_path, 'templates')
 logging.debug(f"Templates directory: {templates_dir}")
