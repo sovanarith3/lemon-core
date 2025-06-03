@@ -74,5 +74,13 @@ class IndraAI:
         except Exception as e:
             return {"url": url, "error": str(e)}
 
+    def roam_next(self):
+        if self.knowledge:
+            last_url = list(self.knowledge.keys())[-1]
+            if 'links' in self.knowledge[last_url] and self.knowledge[last_url]['links']:
+                next_url = random.choice(self.knowledge[last_url]['links'])
+                return self.explore_web(next_url)
+        return {"error": "No new links to roam"}
+
 if __name__ == "__main__":
     indra = IndraAI()
