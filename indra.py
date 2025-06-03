@@ -32,7 +32,13 @@ class IndraAI:
     def _load_knowledge(self):
         if os.path.exists(self.knowledge_file):
             with open(self.knowledge_file, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                # Ensure links are lists
+                for url, info in data.items():
+                    if isinstance(info.get('links'), str):
+                        # Convert string to list if needed (basic fix)
+                        info['links'] = eval(info['links']) if info.get('links') else []
+                return data
         return {}
 
     def _save_knowledge(self):
@@ -90,6 +96,9 @@ class IndraAI:
             if 'links' in self.knowledge[last_url] and self.knowledge[last_url]['links']:
                 next_url = random.choice(self.knowledge[last_url]['links'])
                 return self.explore_web(next_url)
+            # Fallback to a default URL if no links
+            logging.warning("No links found, falling back to default URL")
+            return self.explore_web('https://en.wikipedia.org/wiki/Artificial_general_intelligence')
         return {"error": "No new links to roam"}
 
 if __name__ == "__main__":
