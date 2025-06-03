@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import logging
 import os
-import indra  # Reverted to original import
+import indra_ai as indra  # Updated to match renamed file
 import random
 
 logging.basicConfig(level=logging.DEBUG)
