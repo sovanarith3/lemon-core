@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import logging
 import os
-import indra
+import indra_ai as indra  # Updated import
 import random
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,7 +25,7 @@ else:
     print("Templates directory does not exist")  # Add print
     logging.error("Templates directory does not exist")
 
-indra_instance = indra.Indra_ai()
+indra_instance = indra.IndraAI()  # Updated instantiation
 
 @app.route('/')
 def index():
