@@ -4,19 +4,24 @@ import os
 import indra
 
 logging.basicConfig(level=logging.DEBUG)
+print("Starting app.py")  # Add print
 logging.debug("Starting app.py")
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
 app.config['STATIC_FOLDER'] = 'static'
+print("Flask app initialized")  # Add print
 logging.debug("Flask app initialized")
 
 # Log templates directory contents
 templates_dir = os.path.join(app.root_path, 'templates')
+print(f"Templates directory: {templates_dir}")  # Add print
 logging.debug(f"Templates directory: {templates_dir}")
 if os.path.exists(templates_dir):
+    print(f"Templates directory contents: {os.listdir(templates_dir)}")  # Add print
     logging.debug(f"Templates directory contents: {os.listdir(templates_dir)}")
 else:
+    print("Templates directory does not exist")  # Add print
     logging.error("Templates directory does not exist")
 
 indra_instance = indra.IndraAI()
@@ -25,6 +30,7 @@ indra_instance = indra.IndraAI()
 def index():
     status = indra_instance.get_status()
     memory = indra_instance.get_memory()
+    print("Rendering index page")  # Add print
     logging.debug("Rendering index page")
     return render_template('index.html', status=status, memory=memory)
 
