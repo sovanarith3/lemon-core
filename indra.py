@@ -4,6 +4,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+import random  # Added missing import
 
 logging.basicConfig(level=logging.INFO)
 logging.info("IndraAI initialized")
