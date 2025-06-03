@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request
 import logging
 import os
-import indra_ai as indra  # Updated to match renamed file
+import indra_ai as indra  # Assuming indra_ai.py is the current filename
 import random
+import time  # Added for /roam_auto
 
 logging.basicConfig(level=logging.DEBUG)
 print("Starting app.py")  # Add print
@@ -67,6 +68,17 @@ def roam():
 def roam_next():
     result = indra_instance.roam_next()
     return result
+
+@app.route('/roam_auto', methods=['GET'])
+def roam_auto():
+    results = []
+    for _ in range(5):
+        result = indra_instance.roam_next()
+        results.append(result)
+        if "error" in result:
+            break
+        time.sleep(2)  # Delay to respect server limits
+    return {"explored": results}
 
 @app.route('/knowledge', methods=['GET'])
 def knowledge():
