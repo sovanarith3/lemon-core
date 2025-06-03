@@ -28,6 +28,10 @@ def index():
     logging.debug("Rendering index page")
     return render_template('index.html', status=status, memory=memory)
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
