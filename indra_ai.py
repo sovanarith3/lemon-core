@@ -86,8 +86,8 @@ class IndraAI:
 
             # Basic NLP - extract keywords
             import nltk
-            nltk.download('punkt', quiet=True)  # Tokenization
-            nltk.download('stopwords', quiet=True)  # Stop words
+            nltk.download('punkt_tab', quiet=True)  # Updated to punkt_tab for tokenization
+            nltk.download('stopwords', quiet=True)  # Stop words         
             from nltk.tokenize import word_tokenize
             from nltk.corpus import stopwords
             stop_words = set(stopwords.words('english'))
