@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Indra AI Status</title>
-    <link rel="icon" type="image/x-icon" href="https://www.example.com/favicon.ico">
+    <title>Indra AI</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
-    <h1>Indra AI is {{ status }}</h1>
-    <p>Memory: {{ memory }}</p>
+    <h1>Welcome to Indra AI</h1>
+    <p>Status: {{ status }}</p>
+    <p>Visits: {{ memory.visits }}</p>
 </body>
 </html>
