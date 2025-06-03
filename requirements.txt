@@ -6,3 +6,4 @@ selenium
 flask
 gunicorn
 nltk
+requests
