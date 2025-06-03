@@ -25,7 +25,7 @@ else:
     print("Templates directory does not exist")  # Add print
     logging.error("Templates directory does not exist")
 
-indra_instance = indra.IndraAI()
+indra_instance = indra.Indra_ai()
 
 @app.route('/')
 def index():
