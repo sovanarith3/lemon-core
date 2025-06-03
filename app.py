@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import logging
 import os
 import indra
@@ -46,6 +46,12 @@ def health():
 @app.route('/stats')
 def stats():
     return {"visits": indra_instance.get_memory()["visits"]}
+
+@app.route('/explore', methods=['GET'])
+def explore():
+    url = request.args.get('url', 'https://example.com')  # Default URL if none provided
+    result = indra_instance.explore_web(url)
+    return result
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
