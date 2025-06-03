@@ -15,6 +15,7 @@ class IndraAI:
         self.visited_urls = set()
         self.knowledge_file = "knowledge.json"
         self.knowledge = self._load_knowledge()
+        logging.info(f"Initialized with knowledge: {len(self.knowledge)} entries")
 
     def _load_counter(self):
         if os.path.exists(self.counter_file):
@@ -26,6 +27,7 @@ class IndraAI:
     def _save_counter(self):
         with open(self.counter_file, 'w') as f:
             json.dump({"visits": self.counter}, f)
+        logging.info(f"Saved counter: {self.counter}")
 
     def _load_knowledge(self):
         if os.path.exists(self.knowledge_file):
@@ -34,8 +36,12 @@ class IndraAI:
         return {}
 
     def _save_knowledge(self):
-        with open(self.knowledge_file, 'w') as f:
-            json.dump(self.knowledge, f)
+        try:
+            with open(self.knowledge_file, 'w') as f:
+                json.dump(self.knowledge, f)
+            logging.info(f"Saved knowledge with {len(self.knowledge)} entries")
+        except Exception as e:
+            logging.error(f"Failed to save knowledge: {e}")
 
     def get_status(self):
         return "Running"
@@ -69,14 +75,18 @@ class IndraAI:
             # Store knowledge
             self.knowledge[url] = result
             self._save_knowledge()
+            logging.info(f"Explored {url}, found {len(links)} links")
 
             return result
         except Exception as e:
+            logging.error(f"Error exploring {url}: {e}")
             return {"url": url, "error": str(e)}
 
     def roam_next(self):
+        logging.info(f"Knowledge contains {len(self.knowledge)} entries")
         if self.knowledge:
             last_url = list(self.knowledge.keys())[-1]
+            logging.info(f"Last URL: {last_url}, Links: {self.knowledge[last_url].get('links', [])}")
             if 'links' in self.knowledge[last_url] and self.knowledge[last_url]['links']:
                 next_url = random.choice(self.knowledge[last_url]['links'])
                 return self.explore_web(next_url)
