@@ -1,5 +1,8 @@
-flask
-requests
+numpy
+schedule
+psycopg2-binary
 beautifulsoup4
-nltk
+selenium
+flask
 gunicorn
+nltk
