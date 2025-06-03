@@ -6,6 +6,7 @@ logging.basicConfig(level=logging.DEBUG)
 logging.debug("Starting app.py")
 
 app = Flask(__name__)
+app.config['STATIC_FOLDER'] = 'static'
 app.config['DEBUG'] = True
 logging.debug("Flask app initialized")
 
