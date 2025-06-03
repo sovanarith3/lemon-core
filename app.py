@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import logging
 import os
 import indra
+import random
 
 logging.basicConfig(level=logging.DEBUG)
 print("Starting app.py")  # Add print
@@ -51,6 +52,16 @@ def stats():
 def explore():
     url = request.args.get('url', 'https://example.com')  # Default URL if none provided
     result = indra_instance.explore_web(url)
+    return result
+
+@app.route('/roam', methods=['GET'])
+def roam():
+    # Start with a default URL or use the last explored URL (simplified for now)
+    start_url = request.args.get('url', 'https://en.wikipedia.org/wiki/Artificial_general_intelligence')
+    result = indra_instance.explore_web(start_url)
+    if 'links' in result and result['links']:
+        next_url = random.choice(result['links'])
+        return {"current": result, "next_url": next_url}
     return result
 
 if __name__ == '__main__':
