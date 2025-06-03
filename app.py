@@ -36,11 +36,16 @@ def index():
 
 @app.route('/favicon.ico')
 def favicon():
-    return '', 204
+    print("Favicon route hit")  # Add print for debugging
+    return "Favicon route working", 200
 
 @app.route('/health')
 def health():
     return {"status": "Flask is running"}
+
+@app.route('/stats')
+def stats():
+    return {"visits": indra_instance.get_memory()["visits"]}
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
