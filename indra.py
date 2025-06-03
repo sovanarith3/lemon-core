@@ -1,6 +1,8 @@
 import logging
 import json
 import os
+import requests
+from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.INFO)
 logging.info("IndraAI initialized")
@@ -28,6 +30,17 @@ class IndraAI:
         self.counter += 1
         self._save_counter()
         return {"visits": self.counter}
+
+    def explore_web(self, url):
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Extract text from the page
+            text = soup.get_text(separator=" ", strip=True)
+            return {"url": url, "text": text[:500]}  # Limit to 500 chars for now
+        except Exception as e:
+            return {"url": url, "error": str(e)}
 
 if __name__ == "__main__":
     indra = IndraAI()
