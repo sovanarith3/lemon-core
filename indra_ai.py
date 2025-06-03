@@ -84,6 +84,17 @@ class IndraAI:
                     links.append(link)
             result = {"url": url, "text": text[:500], "links": links[:5]}
 
+            # Basic NLP - extract keywords
+            import nltk
+            nltk.download('punkt', quiet=True)  # Tokenization
+            nltk.download('stopwords', quiet=True)  # Stop words
+            from nltk.tokenize import word_tokenize
+            from nltk.corpus import stopwords
+            stop_words = set(stopwords.words('english'))
+            words = word_tokenize(text.lower())
+            keywords = [word for word in words if word.isalnum() and word not in stop_words][:5]
+            result["keywords"] = keywords
+
             # Store knowledge
             self.knowledge[url] = result
             self._save_knowledge()
