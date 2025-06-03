@@ -32,6 +32,10 @@ def index():
 def favicon():
     return '', 204
 
+@app.route('/health')
+def health():
+    return {"status": "Flask is running"}
+
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 8000))
     app.run(host='0.0.0.0', port=port)
