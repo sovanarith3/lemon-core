@@ -15,7 +15,7 @@ class IndraAI:
         self.visited_urls = set()
         self.knowledge_file = "knowledge.json"
         self.knowledge = self._load_knowledge()
-        logging.info(f"Initialized with knowledge: {len(self.knowledge)} entries")
+        logging.info(f"Initialized with knowledge: {len(self.knowledge)} entries, file exists: {os.path.exists(self.knowledge_file)}")
 
     def _load_counter(self):
         if os.path.exists(self.counter_file):
@@ -31,20 +31,25 @@ class IndraAI:
 
     def _load_knowledge(self):
         if os.path.exists(self.knowledge_file):
-            with open(self.knowledge_file, 'r') as f:
-                data = json.load(f)
-                # Ensure links are lists
-                for url, info in data.items():
-                    if isinstance(info.get('links'), str):
-                        # Convert string to list if needed (basic fix)
-                        info['links'] = eval(info['links']) if info.get('links') else []
-                return data
+            try:
+                with open(self.knowledge_file, 'r') as f:
+                    data = json.load(f)
+                    # Ensure links are lists
+                    for url, info in data.items():
+                        if 'links' in info and isinstance(info['links'], str):
+                            info['links'] = eval(info['links']) if info['links'] else []
+                        elif 'links' not in info:
+                            info['links'] = []
+                    return data
+            except json.JSONDecodeError as e:
+                logging.error(f"Invalid JSON in {self.knowledge_file}: {e}")
+                return {}
         return {}
 
     def _save_knowledge(self):
         try:
             with open(self.knowledge_file, 'w') as f:
-                json.dump(self.knowledge, f)
+                json.dump(self.knowledge, f, indent=2)
             logging.info(f"Saved knowledge with {len(self.knowledge)} entries")
         except Exception as e:
             logging.error(f"Failed to save knowledge: {e}")
@@ -92,14 +97,16 @@ class IndraAI:
         logging.info(f"Knowledge contains {len(self.knowledge)} entries")
         if self.knowledge:
             last_url = list(self.knowledge.keys())[-1]
-            logging.info(f"Last URL: {last_url}, Links: {self.knowledge[last_url].get('links', [])}")
-            if 'links' in self.knowledge[last_url] and self.knowledge[last_url]['links']:
-                next_url = random.choice(self.knowledge[last_url]['links'])
+            links = self.knowledge[last_url].get('links', [])
+            logging.info(f"Last URL: {last_url}, Links: {links}")
+            if links:
+                next_url = random.choice(links)
+                logging.info(f"Chose next URL: {next_url}")
                 return self.explore_web(next_url)
-            # Fallback to a default URL if no links
-            logging.warning("No links found, falling back to default URL")
-            return self.explore_web('https://en.wikipedia.org/wiki/Artificial_general_intelligence')
-        return {"error": "No new links to roam"}
+            logging.warning("No valid links found, falling back to default URL")
+        else:
+            logging.warning("Knowledge is empty, starting fresh")
+        return self.explore_web('https://en.wikipedia.org/wiki/Artificial_general_intelligence')
 
 if __name__ == "__main__":
     indra = IndraAI()
