@@ -56,12 +56,16 @@ def explore():
 
 @app.route('/roam', methods=['GET'])
 def roam():
-    # Start with a default URL or use the last explored URL (simplified for now)
     start_url = request.args.get('url', 'https://en.wikipedia.org/wiki/Artificial_general_intelligence')
     result = indra_instance.explore_web(start_url)
     if 'links' in result and result['links']:
         next_url = random.choice(result['links'])
         return {"current": result, "next_url": next_url}
+    return result
+
+@app.route('/roam_next', methods=['GET'])
+def roam_next():
+    result = indra_instance.roam_next()
     return result
 
 @app.route('/knowledge', methods=['GET'])
