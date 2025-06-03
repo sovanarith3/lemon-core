@@ -8,6 +8,7 @@ logging.debug("Starting app.py")
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
+app.config['STATIC_FOLDER'] = 'static'
 logging.debug("Flask app initialized")
 
 # Log templates directory contents
