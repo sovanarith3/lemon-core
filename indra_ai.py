@@ -14,11 +14,13 @@ except LookupError:
     nltk.download('punkt_tab')
     nltk.download('averaged_perceptron_tagger')
 
-class IndraAI:
+class ASI:
     def __init__(self):
         self.knowledge = self._load_knowledge()
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
+        self.log_file = "asi_log.txt"
+        self._log("ASI initialized")
 
     def _load_knowledge(self):
         if os.path.exists('knowledge.json'):
@@ -43,11 +45,16 @@ class IndraAI:
     def get_memory(self):
         self.memory["visits"] += 1
         self._save_memory()
+        self._log(f"Visit recorded, total: {self.memory['visits']}")
         return self.memory
 
-    def explore_web(self, url=None, max_depth=5):
+    def _log(self, message):
+        with open(self.log_file, 'a') as f:
+            f.write(f"{message}\n")
+
+    def perceive_agi(self, url=None, max_depth=3):
         if url is None:
-            url = "https://en.wikipedia.org/wiki/Special:Random"
+            url = "https://arxiv.org/search/?query=AGI&start=0&max_results=10"
         
         visited = set()
         explored = []
@@ -62,44 +69,55 @@ class IndraAI:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Extract text and links
-                text = ' '.join(p.get_text() for p in soup.find_all('p')[:3])
-                links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) if a.get('href').startswith('/wiki/')][:5]
+                # Extract text and links (focus on AGI-related content)
+                text = ' '.join(p.get_text() for p in soup.find_all('p')[:3] if p.get_text())
+                links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
+                         if 'arxiv.org' in a.get('href') and depth < max_depth][:3]
 
-                # Keyword extraction with NLTK
+                # Keyword extraction with NLTK (prioritize nouns)
                 tokens = nltk.word_tokenize(text.lower())
                 tagged = nltk.pos_tag(tokens)
-                keywords = [word for word, pos in tagged if pos.startswith('NN')][:5]  # Prioritize nouns
+                keywords = [word for word, pos in tagged if pos.startswith('NN')][:5]
 
                 explored.append({
                     "url": current_url,
-                    "text": text[:200],  # Limit text length
+                    "text": text[:200],
                     "links": links,
                     "keywords": keywords
                 })
 
-                # Follow one link for deeper exploration
+                # Follow AGI-related links
                 if links and depth < max_depth:
                     crawl(links[0], depth + 1)
 
-            except requests.RequestException:
-                return
+            except requests.RequestException as e:
+                self._log(f"Error crawling {current_url}: {str(e)}")
 
         crawl(url, 1)
         self.knowledge[url] = explored[0]
         self._save_knowledge()
+        self._log(f"Perceived AGI data from {url}, keywords: {keywords}")
         return {"explored": explored}
 
-    def roam_auto(self):
-        return self.explore_web()
+    def simulate_decision(self, data):
+        if not data or 'keywords' not in data.get('explored', [{}])[0]:
+            self._log("No data or keywords for decision simulation")
+            return {"decision": "No action", "reason": "Insufficient data"}
 
-    def roam_next(self):
-        if not self.knowledge:
-            return self.explore_web()
-        last_url = list(self.knowledge.keys())[-1]
-        return self.explore_web(last_url)
+        keywords = data['explored'][0]['keywords']
+        if "intelligence" in keywords or "learning" in keywords:
+            decision = "Invest in AGI research"
+            reason = "High relevance of AGI-related keywords"
+        else:
+            decision = "Maintain current operations"
+            reason = "No strong AGI signal detected"
+
+        self._log(f"Simulated decision: {decision}, Reason: {reason}")
+        return {"decision": decision, "reason": reason}
 
 # Example usage (for testing)
 if __name__ == "__main__":
-    indra = IndraAI()
-    print(indra.roam_auto())
+    asi = ASI()
+    perception_data = asi.perceive_agi()
+    decision = asi.simulate_decision(perception_data)
+    print(decision)
