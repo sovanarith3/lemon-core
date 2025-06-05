@@ -59,7 +59,7 @@ class ASI:
             except Exception as e:
                 print(f"Failed to load memory.json: {str(e)}")
                 return {"visits": 0}
-        return {"visits": 0}
+        return {"visits": 0"}
 
     def _save_memory(self):
         print("Saving memory...")
@@ -103,10 +103,9 @@ class ASI:
                 print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
                 
-                # Use lxml for XML (RSS feed) or html.parser for HTML
+                # Use appropriate parser based on content
                 parser = 'lxml' if current_url.endswith('.rss') or 'xml' in response.headers.get('Content-Type', '') else 'html.parser'
-                kwargs = {'features': 'xml'} if parser == 'lxml' else {}
-                soup = BeautifulSoup(response.text, parser, **kwargs)
+                soup = BeautifulSoup(response.text, parser) if parser == 'html.parser' else BeautifulSoup(response.text, 'lxml-xml')
                 
                 # Target RSS items or HTML content
                 if parser == 'lxml':
