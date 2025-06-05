@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 
 # Download NLTK data (run once or ensure it's available)
+print("Starting NLTK download check...")
 try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('taggers/averaged_perceptron_tagger_eng')
@@ -14,42 +15,65 @@ except LookupError:
     print("Downloading NLTK data...")
     nltk.download('punkt_tab')
     nltk.download('averaged_perceptron_tagger_eng')
+print("NLTK download check completed.")
 
 class ASI:
     def __init__(self):
+        print("Initializing ASI...")
         self.knowledge = self._load_knowledge()
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
         self.log_file = "asi_log.txt"
         self._log("ASI initialized")
+        print("ASI initialization completed.")
 
     def _load_knowledge(self):
+        print("Loading knowledge...")
         if os.path.exists('knowledge.json'):
-            with open('knowledge.json', 'r') as f:
-                return json.load(f)
+            try:
+                with open('knowledge.json', 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Failed to load knowledge.json: {str(e)}")
+                return {}
         return {}
 
     def _save_knowledge(self):
-        with open('knowledge.json', 'w') as f:
-            json.dump(self.knowledge, f)
+        print("Saving knowledge...")
+        try:
+            with open('knowledge.json', 'w') as f:
+                json.dump(self.knowledge, f)
+        except Exception as e:
+            print(f"Failed to save knowledge.json: {str(e)}")
 
     def _load_memory(self):
+        print("Loading memory...")
         if os.path.exists('memory.json'):
-            with open('memory.json', 'r') as f:
-                return json.load(f)
+            try:
+                with open('memory.json', 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Failed to load memory.json: {str(e)}")
+                return {"visits": 0}
         return {"visits": 0}
 
     def _save_memory(self):
-        with open('memory.json', 'w') as f:
-            json.dump(self.memory, f)
+        print("Saving memory...")
+        try:
+            with open('memory.json', 'w') as f:
+                json.dump(self.memory, f)
+        except Exception as e:
+            print(f"Failed to save memory.json: {str(e)}")
 
     def get_memory(self):
+        print("Getting memory...")
         self.memory["visits"] += 1
         self._save_memory()
         self._log(f"Visit recorded, total: {self.memory['visits']}")
         return self.memory
 
     def _log(self, message):
+        print(f"Attempting to log: {message}")
         try:
             with open(self.log_file, 'a') as f:
                 f.write(f"[{os.times()[0]}] {message}\n")
@@ -57,6 +81,7 @@ class ASI:
             print(f"Logging failed: {str(e)} - Message: {message}")
 
     def perceive_agi(self, url=None, max_depth=3):
+        print(f"Starting perceive_agi with URL: {url}")
         if url is None:
             url = "https://arxiv.org/search/?query=AGI&start=0&max_results=10"
         
@@ -64,12 +89,14 @@ class ASI:
         explored = []
 
         def crawl(current_url, depth):
+            print(f"Crawling {current_url} at depth {depth}")
             if depth > max_depth or current_url in visited:
                 return
             visited.add(current_url)
 
             try:
                 response = requests.get(current_url, timeout=10)
+                print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
@@ -119,6 +146,7 @@ class ASI:
         return {"explored": explored}
 
     def simulate_decision(self, data):
+        print("Simulating decision...")
         if not data or 'keywords' not in data.get('explored', [{}])[0]:
             self._log("No data or keywords for decision simulation")
             return {"decision": "No action", "reason": "Insufficient data"}
