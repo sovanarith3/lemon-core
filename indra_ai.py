@@ -1,10 +1,14 @@
 import nltk
 import json
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+import warnings
 from urllib.parse import urljoin
 import os
 from collections import defaultdict
+
+# Suppress XML parsing warning (we’ll use lxml instead)
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 # Download NLTK data (run once or ensure it's available)
 print("Starting NLTK download check...")
@@ -83,7 +87,6 @@ class ASI:
     def perceive_agi(self, url=None, max_depth=3):
         print(f"Starting perceive_agi with URL: {url}")
         if url is None:
-            # Use arXiv RSS feed for recent AGI papers
             url = "https://export.arxiv.org/rss/cs.AI"
         
         visited = set()
@@ -99,12 +102,20 @@ class ASI:
                 response = requests.get(current_url, timeout=10)
                 print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
-                soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Target title and description from RSS feed or abstract pages
-                text_elements = soup.select('title, description')[:3]
-                if not text_elements:
-                    text_elements = soup.find_all(['h1', 'p'])[:3]  # Fallback
+                # Use lxml parser for XML (RSS feed)
+                parser = 'lxml' if current_url.endswith('.rss') or 'xml' in response.headers.get('Content-Type', '') else 'html.parser'
+                soup = BeautifulSoup(response.text, parser, features="xml" if parser == 'lxml' else None)
+                
+                # Target RSS items or HTML content
+                if parser == 'lxml':
+                    text_elements = soup.select('item > title, item > description')[:3]
+                    links = [link.text for link in soup.select('item > link') if 'arxiv.org' in link.text][:3]
+                else:
+                    text_elements = soup.select('h1, p, div.abstract')[:3]
+                    links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
+                             if 'arxiv.org' in a.get('href') and depth < max_depth][:3]
+
                 if not text_elements:
                     self._log(f"No relevant text found at {current_url}")
                     return
@@ -112,9 +123,6 @@ class ASI:
                 if not text.strip():
                     self._log(f"No usable text at {current_url}")
                     return
-
-                links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
-                         if 'arxiv.org' in a.get('href') and depth < max_depth][:3]  # Broader link filter
 
                 # Keyword extraction
                 tokens = nltk.word_tokenize(text.lower())
