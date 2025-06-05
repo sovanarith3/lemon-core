@@ -142,6 +142,8 @@ class ASI:
             return {"explored": [], "error": "No data found"}
         self.knowledge[url] = explored[0]
         self._save_knowledge()
+        # Fix: Use the keywords from the first explored entry
+        keywords = explored[0]["keywords"] if explored else []
         self._log(f"Perceived AGI data from {url}, keywords: {keywords}")
         return {"explored": explored}
 
