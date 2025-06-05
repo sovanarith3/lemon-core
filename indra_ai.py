@@ -83,7 +83,8 @@ class ASI:
     def perceive_agi(self, url=None, max_depth=3):
         print(f"Starting perceive_agi with URL: {url}")
         if url is None:
-            url = "https://arxiv.org/search/?query=AGI&start=0&max_results=10"
+            # Use arXiv RSS feed for recent AGI papers
+            url = "https://export.arxiv.org/rss/cs.AI"
         
         visited = set()
         explored = []
@@ -100,10 +101,10 @@ class ASI:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Target abstract or title elements for AGI content
-                text_elements = soup.select('h1.title, div.abstract')[:3]
+                # Target title and description from RSS feed or abstract pages
+                text_elements = soup.select('title, description')[:3]
                 if not text_elements:
-                    text_elements = soup.find_all('p')[:3]  # Fallback to paragraphs
+                    text_elements = soup.find_all(['h1', 'p'])[:3]  # Fallback
                 if not text_elements:
                     self._log(f"No relevant text found at {current_url}")
                     return
@@ -113,7 +114,7 @@ class ASI:
                     return
 
                 links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
-                         if 'arxiv.org/abs' in a.get('href') and depth < max_depth][:3]  # Target paper links
+                         if 'arxiv.org' in a.get('href') and depth < max_depth][:3]  # Broader link filter
 
                 # Keyword extraction
                 tokens = nltk.word_tokenize(text.lower())
