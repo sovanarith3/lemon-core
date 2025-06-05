@@ -11,6 +11,7 @@ try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('taggers/averaged_perceptron_tagger_eng')
 except LookupError:
+    print("Downloading NLTK data...")
     nltk.download('punkt_tab')
     nltk.download('averaged_perceptron_tagger_eng')
 
@@ -51,9 +52,9 @@ class ASI:
     def _log(self, message):
         try:
             with open(self.log_file, 'a') as f:
-                f.write(f"{message}\n")
+                f.write(f"[{os.times()[0]}] {message}\n")
         except Exception as e:
-            print(f"Logging failed: {str(e)}")  # Fallback to print for debugging
+            print(f"Logging failed: {str(e)} - Message: {message}")
 
     def perceive_agi(self, url=None, max_depth=3):
         if url is None:
@@ -72,17 +73,24 @@ class ASI:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Extract text and links (focus on AGI-related content)
-                text = ' '.join(p.get_text() for p in soup.find_all('p')[:3] if p.get_text())
-                if not text.strip():  # Handle empty text
-                    self._log(f"No text found at {current_url}")
+                # Extract text and links
+                text_elements = soup.find_all('p')[:3]
+                if not text_elements:
+                    self._log(f"No paragraphs found at {current_url}")
+                    return
+                text = ' '.join(p.get_text() for p in text_elements if p.get_text().strip())
+                if not text.strip():
+                    self._log(f"No usable text at {current_url}")
                     return
 
                 links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
                          if 'arxiv.org' in a.get('href') and depth < max_depth][:3]
 
-                # Keyword extraction with NLTK (prioritize nouns)
+                # Keyword extraction
                 tokens = nltk.word_tokenize(text.lower())
+                if not tokens:
+                    self._log(f"No tokens extracted from {current_url}")
+                    return
                 tagged = nltk.pos_tag(tokens)
                 keywords = [word for word, pos in tagged if pos.startswith('NN')][:5]
 
@@ -93,12 +101,11 @@ class ASI:
                     "keywords": keywords
                 })
 
-                # Follow AGI-related links
                 if links and depth < max_depth:
                     crawl(links[0], depth + 1)
 
             except requests.RequestException as e:
-                self._log(f"Error crawling {current_url}: {str(e)}")
+                self._log(f"Network error at {current_url}: {str(e)}")
             except Exception as e:
                 self._log(f"Unexpected error at {current_url}: {str(e)}")
 
