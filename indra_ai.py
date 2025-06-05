@@ -49,8 +49,11 @@ class ASI:
         return self.memory
 
     def _log(self, message):
-        with open(self.log_file, 'a') as f:
-            f.write(f"{message}\n")
+        try:
+            with open(self.log_file, 'a') as f:
+                f.write(f"{message}\n")
+        except Exception as e:
+            print(f"Logging failed: {str(e)}")  # Fallback to print for debugging
 
     def perceive_agi(self, url=None, max_depth=3):
         if url is None:
@@ -71,6 +74,10 @@ class ASI:
                 
                 # Extract text and links (focus on AGI-related content)
                 text = ' '.join(p.get_text() for p in soup.find_all('p')[:3] if p.get_text())
+                if not text.strip():  # Handle empty text
+                    self._log(f"No text found at {current_url}")
+                    return
+
                 links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
                          if 'arxiv.org' in a.get('href') and depth < max_depth][:3]
 
@@ -92,8 +99,13 @@ class ASI:
 
             except requests.RequestException as e:
                 self._log(f"Error crawling {current_url}: {str(e)}")
+            except Exception as e:
+                self._log(f"Unexpected error at {current_url}: {str(e)}")
 
         crawl(url, 1)
+        if not explored:
+            self._log(f"No data explored from {url}")
+            return {"explored": [], "error": "No data found"}
         self.knowledge[url] = explored[0]
         self._save_knowledge()
         self._log(f"Perceived AGI data from {url}, keywords: {keywords}")
