@@ -100,18 +100,20 @@ class ASI:
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Extract text and links
-                text_elements = soup.find_all('p')[:3]
+                # Target abstract or title elements for AGI content
+                text_elements = soup.select('h1.title, div.abstract')[:3]
                 if not text_elements:
-                    self._log(f"No paragraphs found at {current_url}")
+                    text_elements = soup.find_all('p')[:3]  # Fallback to paragraphs
+                if not text_elements:
+                    self._log(f"No relevant text found at {current_url}")
                     return
-                text = ' '.join(p.get_text() for p in text_elements if p.get_text().strip())
+                text = ' '.join(elem.get_text() for elem in text_elements if elem.get_text().strip())
                 if not text.strip():
                     self._log(f"No usable text at {current_url}")
                     return
 
                 links = [urljoin(current_url, a.get('href')) for a in soup.find_all('a', href=True) 
-                         if 'arxiv.org' in a.get('href') and depth < max_depth][:3]
+                         if 'arxiv.org/abs' in a.get('href') and depth < max_depth][:3]  # Target paper links
 
                 # Keyword extraction
                 tokens = nltk.word_tokenize(text.lower())
@@ -142,7 +144,6 @@ class ASI:
             return {"explored": [], "error": "No data found"}
         self.knowledge[url] = explored[0]
         self._save_knowledge()
-        # Fix: Use the keywords from the first explored entry
         keywords = explored[0]["keywords"] if explored else []
         self._log(f"Perceived AGI data from {url}, keywords: {keywords}")
         return {"explored": explored}
