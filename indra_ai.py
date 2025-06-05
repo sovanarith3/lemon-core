@@ -116,7 +116,8 @@ class ASI:
                     for item in items[:3]:
                         title = item.select_one('title')
                         description = item.select_one('description')
-                        text_elements = [title, description] if title and description else [item]
+                        # Prioritize description (abstract) for keywords
+                        text_elements = [description] if description else [title] if title else [item]
                         text = ' '.join(elem.get_text() for elem in text_elements if elem and elem.get_text().strip())
                         links = [link.text for link in item.select('link') if 'arxiv.org' in link.text][:1]
                         if not text.strip():
@@ -137,7 +138,8 @@ class ASI:
                         if links and depth < max_depth:
                             crawl(links[0], depth + 1)
                 else:
-                    text_elements = soup.select('h1, p, div.abstract')[:3]
+                    # Prioritize abstract content in HTML pages
+                    text_elements = soup.select('blockquote.abstract') or soup.select('h1, p')[:3]
                     if not text_elements:
                         self._log(f"No relevant text found at {current_url}")
                         return
@@ -182,14 +184,18 @@ class ASI:
         if not data or not data.get('explored') or not data['explored']:
             self._log("No data or empty explored list for decision simulation")
             return {"decision": "No action", "reason": "Insufficient data"}
-        if 'keywords' not in data['explored'][0]:
-            self._log("No keywords in explored data for decision simulation")
+        if not all('keywords' in entry for entry in data['explored']):
+            self._log("Missing keywords in explored data for decision simulation")
             return {"decision": "No action", "reason": "Missing keywords"}
         
-        keywords = data['explored'][0]['keywords']
-        if "intelligence" in keywords or "learning" in keywords:
+        # Check all entries for AGI signals
+        all_keywords = set()
+        for entry in data['explored']:
+            all_keywords.update(entry['keywords'])
+        
+        if "intelligence" in all_keywords or "learning" in all_keywords:
             decision = "Invest in AGI research"
-            reason = "High relevance of AGI-related keywords"
+            reason = "High relevance of AGI-related keywords detected"
         else:
             decision = "Maintain current operations"
             reason = "No strong AGI signal detected"
