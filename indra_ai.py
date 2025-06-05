@@ -59,7 +59,7 @@ class ASI:
             except Exception as e:
                 print(f"Failed to load memory.json: {str(e)}")
                 return {"visits": 0}
-        return {"visits": 0"}
+        return {"visits": 0}
 
     def _save_memory(self):
         print("Saving memory...")
