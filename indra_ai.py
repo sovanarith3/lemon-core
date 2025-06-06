@@ -128,7 +128,9 @@ class ASI:
                             self._log(f"No tokens extracted from {current_url}")
                             continue
                         tagged = nltk.pos_tag(tokens)
-                        keywords = [word for word, pos in tagged if pos.startswith('NN')][:5]
+                        # Filter for AGI-specific nouns
+                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}][:5] or \
+                                   [word for word, pos in tagged if pos.startswith('NN')][:5]
                         explored.append({
                             "url": current_url,
                             "text": text[:200],
@@ -154,7 +156,9 @@ class ASI:
                         self._log(f"No tokens extracted from {current_url}")
                         return
                     tagged = nltk.pos_tag(tokens)
-                    keywords = [word for word, pos in tagged if pos.startswith('NN')][:5]
+                    # Filter for AGI-specific nouns
+                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}][:5] or \
+                               [word for word, pos in tagged if pos.startswith('NN')][:5]
                     explored.append({
                         "url": current_url,
                         "text": text[:200],
@@ -173,7 +177,7 @@ class ASI:
         if not explored:
             self._log(f"No data explored from {url}")
             return {"explored": [], "error": "No data found"}
-        self.knowledge[url] = explored[0]
+        self.knowledge[url] = explored  # Save all explored data
         self._save_knowledge()
         keywords = explored[0]["keywords"] if explored else []
         self._log(f"Perceived AGI data from {url}, keywords: {keywords}")
@@ -193,12 +197,12 @@ class ASI:
         for entry in data['explored']:
             all_keywords.update(entry['keywords'])
         
-        if "intelligence" in all_keywords or "learning" in all_keywords:
+        if "intelligence" in all_keywords or "learning" in all_keywords or "ai" in all_keywords:
             decision = "Invest in AGI research"
-            reason = "High relevance of AGI-related keywords detected"
+            reason = f"High relevance of AGI-related keywords detected: {all_keywords}"
         else:
             decision = "Maintain current operations"
-            reason = "No strong AGI signal detected"
+            reason = f"No strong AGI signal detected: {all_keywords}"
 
         self._log(f"Simulated decision: {decision}, Reason: {reason}")
         return {"decision": decision, "reason": reason}
