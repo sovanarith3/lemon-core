@@ -128,9 +128,10 @@ class ASI:
                             self._log(f"No tokens extracted from {current_url}")
                             continue
                         tagged = nltk.pos_tag(tokens)
-                        # Filter for AGI-specific nouns
-                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}][:5] or \
-                                   [word for word, pos in tagged if pos.startswith('NN')][:5]
+                        # Strict AGI keyword filtering
+                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}]
+                        if not keywords:
+                            keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]  # Fallback to top 2 if none
                         explored.append({
                             "url": current_url,
                             "text": text[:200],
@@ -156,9 +157,10 @@ class ASI:
                         self._log(f"No tokens extracted from {current_url}")
                         return
                     tagged = nltk.pos_tag(tokens)
-                    # Filter for AGI-specific nouns
-                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}][:5] or \
-                               [word for word, pos in tagged if pos.startswith('NN')][:5]
+                    # Strict AGI keyword filtering
+                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}]
+                    if not keywords:
+                        keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]  # Fallback to top 2 if none
                     explored.append({
                         "url": current_url,
                         "text": text[:200],
@@ -197,9 +199,10 @@ class ASI:
         for entry in data['explored']:
             all_keywords.update(entry['keywords'])
         
-        if "intelligence" in all_keywords or "learning" in all_keywords or "ai" in all_keywords:
+        relevant_keywords = {kw for kw in all_keywords if kw in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}}
+        if relevant_keywords:
             decision = "Invest in AGI research"
-            reason = f"High relevance of AGI-related keywords detected: {all_keywords}"
+            reason = f"High relevance of AGI-related keywords detected: {relevant_keywords}"
         else:
             decision = "Maintain current operations"
             reason = f"No strong AGI signal detected: {all_keywords}"
