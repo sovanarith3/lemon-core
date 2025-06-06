@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query
-from indra_ai import ASI  # Assuming indra_ai.py is in the same directory
+from indra_ai import ASI  # Adjust path if indra_ai.py is in a subdirectory
 
 app = FastAPI()
 asi = ASI()
