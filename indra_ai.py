@@ -16,8 +16,12 @@ try:
     nltk.data.find('taggers/averaged_perceptron_tagger_eng')
 except LookupError:
     print("Downloading NLTK data...")
-    nltk.download('punkt_tab')
-    nltk.download('averaged_perceptron_tagger_eng')
+    try:
+        nltk.download('punkt_tab')
+        nltk.download('averaged_perceptron_tagger_eng')
+    except Exception as e:
+        print(f"Failed to download NLTK data: {str(e)}")
+        raise
 print("NLTK download check completed.")
 
 class ASI:
@@ -25,11 +29,11 @@ class ASI:
         print("Initializing ASI...")
         self.log_file = "asi_log.txt"
         self.updates_file = "updates.json"
-        self.config_file = "config.json"  # Define this before calling _load_config
+        self.config_file = "config.json"
         self.knowledge = self._load_knowledge()
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
-        self.config = self._load_config()  # Now safe to call
+        self.config = self._load_config()
         self.agi_keywords = self.config.get("agi_keywords", {"intelligence", "learning", "ai", "system", "agent", "network"})
         self._log("ASI initialized")
         print("ASI initialization completed.")
@@ -240,7 +244,7 @@ class ASI:
             all_keywords.update(entry['keywords'])
         
         relevant_keywords = {kw for kw in all_keywords if kw in self.agi_keywords}
-        keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6}
+        keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6, 'neural': 0.7}
         confidence_score = sum(keyword_confidence.get(kw, 0) for kw in relevant_keywords)
         threshold = 1.5
 
@@ -286,6 +290,9 @@ class ASI:
                 self.agi_keywords.add(new_keyword)
                 self.config["agi_keywords"] = list(self.agi_keywords)
                 self._save_config()
+                # Update confidence score for new keyword (default to 0.7 if not defined)
+                if new_keyword not in keyword_confidence:
+                    keyword_confidence[new_keyword] = 0.7
                 response = f"Added keyword '{new_keyword}' to AGI keywords. Current list: {self.agi_keywords}"
             else:
                 response = "Please provide a keyword to add (e.g., 'add keyword: neural')."
