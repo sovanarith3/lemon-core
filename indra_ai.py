@@ -200,12 +200,17 @@ class ASI:
             all_keywords.update(entry['keywords'])
         
         relevant_keywords = {kw for kw in all_keywords if kw in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}}
-        if relevant_keywords:
+        # Add confidence scoring
+        keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6}
+        confidence_score = sum(keyword_confidence.get(kw, 0) for kw in relevant_keywords)
+        threshold = 1.5  # Require at least a strong signal (e.g., 'learning' + 'agent' = 1.5)
+
+        if relevant_keywords and confidence_score >= threshold:
             decision = "Invest in AGI research"
-            reason = f"High relevance of AGI-related keywords detected: {relevant_keywords}"
+            reason = f"High relevance of AGI-related keywords detected: {relevant_keywords}, Confidence: {confidence_score:.2f}"
         else:
             decision = "Maintain current operations"
-            reason = f"No strong AGI signal detected: {all_keywords}"
+            reason = f"No strong AGI signal detected: {all_keywords}, Confidence: {confidence_score:.2f}"
 
         self._log(f"Simulated decision: {decision}, Reason: {reason}")
         return {"decision": decision, "reason": reason}
