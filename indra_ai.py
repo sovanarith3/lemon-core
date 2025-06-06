@@ -8,10 +8,8 @@ import os
 from collections import defaultdict
 import time
 
-# Suppress XML parsing warning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
-# Download NLTK data (run once or ensure it's available)
 print("Starting NLTK download check...")
 try:
     nltk.data.find('tokenizers/punkt')
@@ -28,8 +26,11 @@ class ASI:
         self.knowledge = self._load_knowledge()
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
+        self.config = self._load_config()
+        self.agi_keywords = self.config.get("agi_keywords", {"intelligence", "learning", "ai", "system", "agent", "network"})
         self.log_file = "asi_log.txt"
         self.updates_file = "updates.json"
+        self.config_file = "config.json"
         self._log("ASI initialized")
         print("ASI initialization completed.")
 
@@ -70,6 +71,25 @@ class ASI:
                 json.dump(self.memory, f)
         except Exception as e:
             print(f"Failed to save memory.json: {str(e)}")
+
+    def _load_config(self):
+        print("Loading config...")
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Failed to load config.json: {str(e)}")
+                return {}
+        return {}
+
+    def _save_config(self):
+        print("Saving config...")
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.config, f)
+        except Exception as e:
+            print(f"Failed to save config.json: {str(e)}")
 
     def _load_updates(self):
         print("Loading updates...")
@@ -130,11 +150,9 @@ class ASI:
                 print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
                 
-                # Use appropriate parser based on content
                 parser = 'lxml' if current_url.endswith('.rss') or 'xml' in response.headers.get('Content-Type', '') else 'html.parser'
                 soup = BeautifulSoup(response.text, parser) if parser == 'html.parser' else BeautifulSoup(response.text, 'lxml-xml')
                 
-                # Target RSS items or HTML content
                 if parser == 'lxml':
                     items = soup.select('item')
                     if not items:
@@ -154,7 +172,7 @@ class ASI:
                             self._log(f"No tokens extracted from {current_url}")
                             continue
                         tagged = nltk.pos_tag(tokens)
-                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}]
+                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in self.agi_keywords]
                         if not keywords:
                             keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]
                         explored.append({
@@ -181,7 +199,7 @@ class ASI:
                         self._log(f"No tokens extracted from {current_url}")
                         return
                     tagged = nltk.pos_tag(tokens)
-                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}]
+                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in self.agi_keywords]
                     if not keywords:
                         keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]
                     explored.append({
@@ -221,7 +239,7 @@ class ASI:
         for entry in data['explored']:
             all_keywords.update(entry['keywords'])
         
-        relevant_keywords = {kw for kw in all_keywords if kw in {'intelligence', 'learning', 'ai', 'system', 'agent', 'network'}}
+        relevant_keywords = {kw for kw in all_keywords if kw in self.agi_keywords}
         keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6}
         confidence_score = sum(keyword_confidence.get(kw, 0) for kw in relevant_keywords)
         threshold = 1.5
@@ -240,7 +258,6 @@ class ASI:
         print("Checking for latest updates...")
         updates = self._load_updates()
         current_time = time.time()
-        # Refresh if older than 24 hours (86400 seconds)
         if current_time - updates["timestamp"] > 86400:
             print("Refreshing updates...")
             perception_data = self.perceive_agi()
@@ -263,12 +280,16 @@ class ASI:
             perception_data = self.perceive_agi()
             decision = self.simulate_decision(perception_data)
             response = f"Decision: {decision['decision']}\nReason: {decision['reason']}"
+        elif "add keyword:" in user_input:
+            new_keyword = user_input.split("add keyword:")[1].strip()
+            if new_keyword:
+                self.agi_keywords.add(new_keyword)
+                self.config["agi_keywords"] = list(self.agi_keywords)
+                self._save_config()
+                response = f"Added keyword '{new_keyword}' to AGI keywords. Current list: {self.agi_keywords}"
+            else:
+                response = "Please provide a keyword to add (e.g., 'add keyword: neural')."
         else:
-            response = "I can help with: 'update me', 'explore data', or 'decide'. What would you like to do?"
+            response = "I can help with: 'update me', 'explore data', 'decide', or 'add keyword: <keyword>'. What would you like to do?"
         self._log(f"Chat response: {response}")
         return {"response": response}
-
-# Example usage (for testing)
-if __name__ == "__main__":
-    asi = ASI()
-    print(asi.chat("update me"))
