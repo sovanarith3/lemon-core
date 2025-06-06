@@ -23,14 +23,14 @@ print("NLTK download check completed.")
 class ASI:
     def __init__(self):
         print("Initializing ASI...")
+        self.log_file = "asi_log.txt"
+        self.updates_file = "updates.json"
+        self.config_file = "config.json"  # Define this before calling _load_config
         self.knowledge = self._load_knowledge()
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
-        self.config = self._load_config()
+        self.config = self._load_config()  # Now safe to call
         self.agi_keywords = self.config.get("agi_keywords", {"intelligence", "learning", "ai", "system", "agent", "network"})
-        self.log_file = "asi_log.txt"
-        self.updates_file = "updates.json"
-        self.config_file = "config.json"
         self._log("ASI initialized")
         print("ASI initialization completed.")
 
