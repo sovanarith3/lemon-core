@@ -152,7 +152,7 @@ class ASI:
             visited.add(current_url)
 
             try:
-                response = requests.get(current_url, timeout=20)  # Increased timeout to 20 seconds
+                response = requests.get(current_url, timeout=20)
                 print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
                 self._log(f"Raw response status: {response.status_code}, content length: {len(response.text)}")
@@ -162,34 +162,40 @@ class ASI:
                 
                 if parser == 'lxml':
                     items = soup.select('item')
+                    self._log(f"Found {len(items)} items in {current_url}")
                     if not items:
                         self._log(f"No items found at {current_url}")
                         return
-                    for item in items[:3]:
-                        title = item.select_one('title')
-                        description = item.select_one('description')
-                        text_elements = [description] if description else [title] if title else [item]
-                        text = ' '.join(elem.get_text() for elem in text_elements if elem and elem.get_text().strip())
-                        links = [link.text for link in item.select('link') if 'arxiv.org' in link.text][:1]
-                        if not text.strip():
-                            self._log(f"No usable text in item at {current_url}")
-                            continue
-                        tokens = nltk.word_tokenize(text.lower())
-                        if not tokens:
-                            self._log(f"No tokens extracted from {current_url}")
-                            continue
-                        tagged = nltk.pos_tag(tokens)
-                        keywords = [word for word, pos in tagged if pos.startswith('NN') and word in self.agi_keywords]
-                        if not keywords:
-                            keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]
-                        explored.append({
-                            "url": current_url,
-                            "text": text[:200],
-                            "links": links,
-                            "keywords": keywords
-                        })
-                        if links and depth < max_depth:
-                            crawl(links[0], depth + 1)
+                    # Test with the first item only for debugging
+                    item = items[0]
+                    title = item.select_one('title')
+                    description = item.select_one('description')
+                    text_elements = [description] if description else [title] if title else [item]
+                    text = ' '.join(elem.get_text() for elem in text_elements if elem and elem.get_text().strip())
+                    self._log(f"Extracted text from first item: {text[:100]}...")
+                    links = [link.text for link in item.select('link') if 'arxiv.org' in link.text][:1]
+                    if not text.strip():
+                        self._log(f"No usable text in first item at {current_url}")
+                        return
+                    tokens = nltk.word_tokenize(text.lower())
+                    self._log(f"Tokenized text into {len(tokens)} tokens")
+                    if not tokens:
+                        self._log(f"No tokens extracted from {current_url}")
+                        return
+                    tagged = nltk.pos_tag(tokens)
+                    self._log(f"Tagged {len(tagged)} tokens")
+                    keywords = [word for word, pos in tagged if pos.startswith('NN') and word in self.agi_keywords]
+                    if not keywords:
+                        keywords = [word for word, pos in tagged if pos.startswith('NN')][:2]
+                    self._log(f"Extracted keywords: {keywords}")
+                    explored.append({
+                        "url": current_url,
+                        "text": text[:200],
+                        "links": links,
+                        "keywords": keywords
+                    })
+                    if links and depth < max_depth:
+                        crawl(links[0], depth + 1)
                 else:
                     text_elements = soup.select('blockquote.abstract') or soup.select('h1, p')[:3]
                     if not text_elements:
