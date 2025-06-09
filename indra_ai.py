@@ -137,7 +137,7 @@ class ASI:
         except Exception as e:
             print(f"Logging failed: {str(e)} - Message: {message}")
 
-    def perceive_agi(self, url=None, max_depth=3):
+    def perceive_agi(self, url=None, max_depth=1):  # Reduced max_depth to 1 for initial test
         print(f"Starting perceive_agi with URL: {url}")
         if url is None:
             url = "https://export.arxiv.org/rss/cs.AI"
@@ -166,12 +166,15 @@ class ASI:
                     if not items:
                         self._log(f"No items found at {current_url}")
                         return
-                    # Test with the first item only for debugging
+                    # Process only the first item for debugging
                     item = items[0]
+                    self._log(f"Raw XML of first item: {str(item)[:200]}...")  # Log first 200 chars of XML
                     title = item.select_one('title')
                     description = item.select_one('description')
                     text_elements = [description] if description else [title] if title else [item]
                     text = ' '.join(elem.get_text() for elem in text_elements if elem and elem.get_text().strip())
+                    if not text.strip():
+                        text = item.get_text()  # Fallback to entire item text
                     self._log(f"Extracted text from first item: {text[:100]}...")
                     links = [link.text for link in item.select('link') if 'arxiv.org' in link.text][:1]
                     if not text.strip():
