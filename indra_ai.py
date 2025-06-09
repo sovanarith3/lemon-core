@@ -24,6 +24,8 @@ except LookupError:
         raise
 print("NLTK download check completed.")
 
+keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6, 'neural': 0.7}
+
 class ASI:
     def __init__(self):
         print("Initializing ASI...")
@@ -34,7 +36,7 @@ class ASI:
         self.memory = self._load_memory()
         self.memory["visits"] = self.memory.get("visits", 0)
         self.config = self._load_config()
-        self.agi_keywords = self.config.get("agi_keywords", {"intelligence", "learning", "ai", "system", "agent", "network"})
+        self.agi_keywords = self.config.get("agi_keywords", {"intelligence", "learning", "ai", "system", "agent", "network", "neural"})
         self._log("ASI initialized")
         print("ASI initialization completed.")
 
@@ -150,9 +152,10 @@ class ASI:
             visited.add(current_url)
 
             try:
-                response = requests.get(current_url, timeout=10)
+                response = requests.get(current_url, timeout=20)  # Increased timeout to 20 seconds
                 print(f"Request to {current_url} completed with status {response.status_code}")
                 response.raise_for_status()
+                self._log(f"Raw response status: {response.status_code}, content length: {len(response.text)}")
                 
                 parser = 'lxml' if current_url.endswith('.rss') or 'xml' in response.headers.get('Content-Type', '') else 'html.parser'
                 soup = BeautifulSoup(response.text, parser) if parser == 'html.parser' else BeautifulSoup(response.text, 'lxml-xml')
@@ -244,8 +247,7 @@ class ASI:
             all_keywords.update(entry['keywords'])
         
         relevant_keywords = {kw for kw in all_keywords if kw in self.agi_keywords}
-        keyword_confidence = {'intelligence': 0.9, 'learning': 0.8, 'ai': 0.9, 'system': 0.6, 'agent': 0.7, 'network': 0.6, 'neural': 0.7}
-        confidence_score = sum(keyword_confidence.get(kw, 0) for kw in relevant_keywords)
+        confidence_score = sum(keyword_confidence.get(kw, 0.7) for kw in relevant_keywords)
         threshold = 1.5
 
         if relevant_keywords and confidence_score >= threshold:
@@ -290,7 +292,6 @@ class ASI:
                 self.agi_keywords.add(new_keyword)
                 self.config["agi_keywords"] = list(self.agi_keywords)
                 self._save_config()
-                # Update confidence score for new keyword (default to 0.7 if not defined)
                 if new_keyword not in keyword_confidence:
                     keyword_confidence[new_keyword] = 0.7
                 response = f"Added keyword '{new_keyword}' to AGI keywords. Current list: {self.agi_keywords}"
