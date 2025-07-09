@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-nltk
-requests
-beautifulsoup4
-lxml
